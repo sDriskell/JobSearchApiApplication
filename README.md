@@ -31,42 +31,40 @@
 
 # New Code:
 
-def main():
-    ...
-    # Build connection and cursor for database
-    
-    conn = sqlite3.connect('test.sqlite')
-    
-    c = conn.cursor()
-    
-    # Create and populate database
-    
-    create_db(data, conn, c)
-    
-    populate_db(data, conn, c)
-    
-    
-def create_db(data, conn, c):
+    def main():
 
-    c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
+        ...    
     
-    company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
+        conn = sqlite3.connect('test.sqlite')
+    
+        c = conn.cursor()
+    
+        create_db(data, conn, c)
+    
+        populate_db(data, conn, c)
+    
+    
+    def create_db(data, conn, c):
+
+        c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
+    
+        company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
 
 
-def populate_db(data, conn, c):
+    def populate_db(data, conn, c):
 
-    for jobs in data:
+        for jobs in data:
     
-        c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
+            c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
         
-        description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         
                   (jobs["company"], jobs["id"], jobs["type"], jobs["url"], jobs["created_at"], jobs["company_url"],
                   
                    jobs["location"], jobs["title"], jobs["description"], jobs["how_to_apply"],))
                        
-    conn.commit()
+        conn.commit()
     
-    c.close()
+        c.close()
     
-    conn.close()
+        conn.close()
