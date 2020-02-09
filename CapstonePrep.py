@@ -2,12 +2,14 @@ import requests
 import time
 from typing import Dict, List
 import sqlite3
+
 """
 Shane Driskell
 COMP 490
 Prof. Santore
 10 FEB 2020
 """
+
 
 def get_github_jobs_data() -> List[Dict]:
     """retrieve github jobs data in form of a list of dictionaries
@@ -29,25 +31,27 @@ def get_github_jobs_data() -> List[Dict]:
     return all_data
 
 
+# Pushes List[Dict] to .txt
 def save_data(data, filename='data.txt'):
     with open(filename, 'a', encoding='utf-8') as file:
         for item in data:
             print(item, file=file)
 
 
-def save_to_db(data):
-    """:keyword data is a list of dictionaries. Each dictionary is a JSON
-    object with a bit of jobs data"""
-    conn = sqlite3.connect('test.sqlite')
-    c = conn.cursor()
+# Set the columns for database
+def create_db(data, conn, c):
     c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
     company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
 
+
+# Add rows to database populated with each individual dictionary
+def populate_db(data, conn, c):
     for jobs in data:
         c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
         description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                   (jobs["company"], jobs["id"], jobs["type"], jobs["url"], jobs["created_at"], jobs["company_url"],
                    jobs["location"], jobs["title"], jobs["description"], jobs["how_to_apply"],))
+    # Commit and close so rows are saved
     conn.commit()
     c.close()
     conn.close()
@@ -56,7 +60,12 @@ def save_to_db(data):
 def main():
     data = get_github_jobs_data()
     save_data(data)
-    save_to_db(data)
+    # Build connection and cursor for database
+    conn = sqlite3.connect('test.sqlite')
+    c = conn.cursor()
+    # Create and populate database
+    create_db(data, conn, c)
+    populate_db(data, conn, c)
 
 
 if __name__ == '__main__':
