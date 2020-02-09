@@ -2,7 +2,12 @@ import requests
 import time
 from typing import Dict, List
 import sqlite3
-
+"""
+Shane Driskell
+COMP 490
+Prof. Santore
+10 FEB 2020
+"""
 
 def get_github_jobs_data() -> List[Dict]:
     """retrieve github jobs data in form of a list of dictionaries
