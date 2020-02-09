@@ -3,23 +3,20 @@
 
 # Working Functions:
 
-- Create a data base with a table/document (sqlite for undergrads) for the data you have collected.
+- Create a data base with a table/document
 
-- Modify your program to save the data that you downloaded in your program during sprint 1 to your database.
+- Save data from 
 
-- Using good coding style, you should have a separate function that knows about the data base that is completely unaware of the web based source of the data. (take the data to be saved by the database as a parameter)
+- Create separate function that takes in data collected from data pulled
 
 
 # Needs Working On: 
 
-- Change the test from sprint1 which checked if the data was saved to the file. Instead have this test check to see if the data was saved to the database properly.
+- Testing: Have test check to see if the data was saved to the database properly
 
-- Testing: Change the test from sprint1 which checked if the data was saved to the file. Instead have this test check to see if the data was saved to the database properly.
+- Testing: Write test to ensure table exists in the database after your program runs
 
-- Testing: write a test to make sure that the table (or document for nosql grad students) exists in the database after your program runs
-
-- Testing: write a series of tests to make sure your function/method that saves to the database works properly. (send some data as a parameter to your function, and have it save the data to the database). Try to save some good data, try to save some bad data and make sure that this test fails (and mark it as expected to fail so that the rest of the tests continue)
-
+- Testing: write test for your function that saves to the database. (send some data as a parameter to your function, and have it save the data to the database). Try to save some good data, try to save some bad data and make sure that this test fails (and mark it as expected to fail so that the rest of the tests continue)
 
 
 # To Do:
@@ -31,3 +28,45 @@
 - Make sure that any newly needed files are included in the github repo
 
 - Make sure that your git commit messages are reasonable.
+
+# New Code:
+
+def main():
+    ...
+    # Build connection and cursor for database
+    
+    conn = sqlite3.connect('test.sqlite')
+    
+    c = conn.cursor()
+    
+    # Create and populate database
+    
+    create_db(data, conn, c)
+    
+    populate_db(data, conn, c)
+    
+    
+def create_db(data, conn, c):
+
+    c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
+    
+    company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
+
+
+def populate_db(data, conn, c):
+
+    for jobs in data:
+    
+        c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
+        
+        description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        
+                  (jobs["company"], jobs["id"], jobs["type"], jobs["url"], jobs["created_at"], jobs["company_url"],
+                  
+                   jobs["location"], jobs["title"], jobs["description"], jobs["how_to_apply"],))
+                       
+    conn.commit()
+    
+    c.close()
+    
+    conn.close()
