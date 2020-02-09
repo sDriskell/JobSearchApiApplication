@@ -3,11 +3,11 @@
 
 # Working Functions:
 
-+Create a data base with a table/document (sqlite for undergrads) for the data you have collected.
+- Create a data base with a table/document (sqlite for undergrads) for the data you have collected.
 
-+Modify your program to save the data that you downloaded in your program during sprint 1 to your database.
+- Modify your program to save the data that you downloaded in your program during sprint 1 to your database.
 
-+Using good coding style, you should have a separate function that knows about the data base that is completely unaware of the web based source of the data. (take the data to be saved by the database as a parameter)
+- Using good coding style, you should have a separate function that knows about the data base that is completely unaware of the web based source of the data. (take the data to be saved by the database as a parameter)
 
 
 # Needs Working On: 
