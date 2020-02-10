@@ -19,15 +19,6 @@
 
 
 # New Code:
-
-    def main():
-        ...    
-        conn = sqlite3.connect('test.sqlite')
-        c = conn.cursor()
-        create_db(data, conn, c)
-        populate_db(data, conn, c)
-
-
     def create_db(data, conn, c):
         c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
         company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
@@ -42,20 +33,42 @@
         conn.commit()
         c.close()
         conn.close()
+
+    def build_list():
+        data = get_github_jobs_data()
+        save_data(data)
+        return data
+
+
+    def build_database(data):
+        # Build connection and cursor for database
+        conn = sqlite3.connect('test.sqlite')
+        c = conn.cursor()
+        # Create and populate database
+        create_db(data, conn, c)
+        populate_db(data, conn, c)
+        # Close connection and cursor
+        c.close()
+        conn.close()
+
+
+    def main():
+        data = build_list()
+        build_database(data)
         
    
-   # New Test Code:
-       def test_database():
-          data = CapstonePrep.get_github_jobs_data()
-          conn = sqlite3.connect('test.sqlite')
-          c = conn.cursor()
-          CapstonePrep.create_db(data, conn, c)
-          CapstonePrep.populate_db(data, conn, c)
+# New Test Code:
+    def test_database():
+        data = CapstonePrep.get_github_jobs_data()
+        conn = sqlite3.connect('test.sqlite')
+        c = conn.cursor()
+        CapstonePrep.create_db(data, conn, c)
+        CapstonePrep.populate_db(data, conn, c)
 
-          c.execute('''SELECT count(name) FROM sqlite_master WHERE type='table' AND name='tutorial' ''')
-          if c.fetchone()[0] == 1:
-              {print("Table was built.")}
+        c.execute('''SELECT count(name) FROM sqlite_master WHERE type='table' AND name='tutorial' ''')
+        if c.fetchone()[0] == 1:
+            {print("Table was built.")}
 
-          c.close()
-          conn.close()
+        c.close()
+        conn.close()
 
