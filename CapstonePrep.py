@@ -64,10 +64,15 @@ def populate_db(data, conn, c):
     conn.commit()
 
 
-def main():
-    # Build list[dict] and .txt file
+# Build list[dict] and .txt file
+def build_list():
     data = get_github_jobs_data()
     save_data(data)
+    return data
+
+
+# BuiLd database and table
+def build_database(data):
     # Build connection and cursor for database
     conn = sqlite3.connect('test.sqlite')
     c = conn.cursor()
@@ -77,6 +82,11 @@ def main():
     # Close connection and cursor
     c.close()
     conn.close()
+
+
+def main():
+    data = build_list()
+    build_database(data)
 
 
 if __name__ == '__main__':
