@@ -8,15 +8,6 @@ Shane Driskell
 COMP 490
 Prof. Santore
 10 FEB 2020
-
-References:
-https://pythonexamples.org/python-sqlite3-check-if-table-exists/
-https://www.dataquest.io/blog/python-api-tutorial/
-https://stackoverflow.com/questions/23718896/pretty-print-json-in-python-pythonic-way
-https://stackoverflow.com/questions/12599033/python-write-to-file-from-dictionary
-https://community.jamasoftware.com/blogs/john-lastname/2017/09/29/managing-multiple-pages-of-results-in-the-jama-rest-api
-https://webhost.bridgew.edu/jsantore/Spring2020/Capstone/3ContinuousIntegration.pdf
-http://webhost.bridgew.edu/jsantore/Spring2020/Capstone/4DataHandling.pdf
 """
 
 
@@ -91,3 +82,15 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+"""
+References:
+https://pythonexamples.org/python-sqlite3-check-if-table-exists/
+https://www.dataquest.io/blog/python-api-tutorial/
+https://stackoverflow.com/questions/23718896/pretty-print-json-in-python-pythonic-way
+https://stackoverflow.com/questions/12599033/python-write-to-file-from-dictionary
+https://community.jamasoftware.com/blogs/john-lastname/2017/09/29/managing-multiple-pages-of-results-in-the-jama-rest-api
+https://webhost.bridgew.edu/jsantore/Spring2020/Capstone/3ContinuousIntegration.pdf
+http://webhost.bridgew.edu/jsantore/Spring2020/Capstone/4DataHandling.pdf
+https://www.sqlitetutorial.net/sqlite-python/insert/
+"""

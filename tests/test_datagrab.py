@@ -42,14 +42,14 @@ def test_save_data():
     assert f"{str(demo_data)}\n" in saved_data
 
 
-# Test to ensure database and table are created
+# Create table and test to make sure one entry exists to show database and table are built
 def test_database():
     data = CapstonePrep.get_github_jobs_data()
     conn = sqlite3.connect('test.sqlite')
     c = conn.cursor()
     CapstonePrep.create_db(data, conn, c)
     CapstonePrep.populate_db(data, conn, c)
-    # Create table and test to make sure one entry exists to show database and table are built
+    # Calls database and table to check to see if at least one entry exists
     c.execute('''SELECT count(name) FROM sqlite_master WHERE type='table' AND name='tutorial' ''')
     if c.fetchone()[0] == 1:
         {print("Table was built.")}
@@ -58,3 +58,54 @@ def test_database():
     conn.close()
 
 
+def test_good_insert():
+    # good insert here
+    demo_data = {'company': "testName", 'id': "1", 'type': "full", 'url': "www.nope.com",
+                 'created_at': "2020-02-02", 'company_url': "sa.com", 'location': "US",
+                 'title': "worker", 'description': "describe", 'how_to_apply': "hired"}
+
+    conn = sqlite3.connect('test.sqlite')
+    c = conn.cursor()
+
+    c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
+    company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
+
+    c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
+    description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+          (demo_data["company"], demo_data["id"], demo_data["type"], demo_data["url"], demo_data["created_at"],
+           demo_data["company_url"], demo_data["location"], demo_data["title"], demo_data["description"],
+           demo_data["how_to_apply"],))
+
+    """
+    entry_found = False
+    if c.fetchone()[0] == 1:
+        entry_found = False
+    """
+
+    conn.commit()
+    c.close()
+    conn.close()
+    # assert entry_found
+
+""" NOT WORKING
+def test_bad_insert():
+    # bad insert here
+    demo_data = {'company': "testName", 'id': 1, 'type': "full", 'url': "www.nope.com",
+                 'created_at': 20200202, 'company_url': "sa.com", 'location': "US",
+                 'title': "worker", 'description': "describe", 'how_to_apply': "hired"}
+
+    conn = sqlite3.connect('test.sqlite')
+    c = conn.cursor()
+
+    c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
+    company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
+
+    c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
+    description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+          (demo_data["company"], demo_data["id"], demo_data["type"], demo_data["url"], demo_data["created_at"],
+           demo_data["company_url"], demo_data["how_to_apply"], demo_data["location"], demo_data["title"],
+           demo_data["description"],))
+    conn.commit()
+    c.close()
+    conn.close()
+"""
