@@ -13,7 +13,7 @@
 
 - Testing: Write test to ensure table exists in the database after your program runs
 
-# Needs Working On: 
+# Not Working: 
 
 - Testing: write test for your function that saves to the database. (send some data as a parameter to your function, and have it save the data to the database). Try to save some good data, try to save some bad data and make sure that this test fails (and mark it as expected to fail so that the rest of the tests continue)
 
