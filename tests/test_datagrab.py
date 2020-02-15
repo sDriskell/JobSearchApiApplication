@@ -1,6 +1,5 @@
 import pytest
 import CapstonePrep
-import sqlite3
 
 
 @pytest.fixture
@@ -10,13 +9,13 @@ def get_data():
 
 
 def test_jobs_dict(get_data):
-    # First required test
+    # first required test
     assert len(get_data) >=100
     assert type(get_data[1]) is dict
 
 
 def test_jobs_data(get_data):
-    # Any real data should have both full time and Contract
+    # any real data should have both full time and Contract
     # jobs in the list, assert this
     data = get_data
     full_time_found = False
@@ -26,86 +25,51 @@ def test_jobs_data(get_data):
             contract_found = True
         elif item['type'] == 'Full Time':
             full_time_found = True
-    assert contract_found and full_time_found
+    assert  contract_found and full_time_found
 
 
-def test_save_data():
-    # Second required test
-    demo_data = {'id': 1234, 'type': "Testable"}
-    list_data = []
-    list_data.append(demo_data)
-    file_name = "testfile.txt"
-    CapstonePrep.save_data(list_data, file_name)
-    testfile = open(file_name, 'r')
-    saved_data = testfile.readlines()
-    # The save puts a newline at the end
-    assert f"{str(demo_data)}\n" in saved_data
+def test_table_exists():
+    fake_table = 'test_table'
+    fake_row = {'id': 'F$RT%YH&', 'type': 'Full Time', 'url': 'http://wwww.fakedata.com', 'created_at': '02-12-2020',
+                'company': "Don't Work Here Comp", 'company_url': None, 'location': "giant urban metro",
+                'title': 'Junior software peon', 'description': "blah blah, devops, scrum, hot tech",
+                'how_to_apply': "http://runaway.com", 'company_logo': None}
+    connection, cursor = CapstonePrep.open_db('testonly.sqlite')
+    CapstonePrep.create_table(cursor, CapstonePrep.make_column_description_from_json_dict(fake_row), fake_table)
+    result_cursor = cursor.execute(f"SELECT name from sqlite_master where (name = '{fake_table}')")
+    success = len(result_cursor.fetchall()) >=1
+    assert success
 
 
-# Create table and test to make sure one entry exists to show database and table are built
-def test_database():
-    data = CapstonePrep.get_github_jobs_data()
-    conn = sqlite3.connect('test.sqlite')
-    c = conn.cursor()
-    CapstonePrep.create_db(data, conn, c)
-    CapstonePrep.populate_db(data, conn, c)
-    # Calls database and table to check to see if at least one entry exists
-    c.execute('''SELECT count(name) FROM sqlite_master WHERE type='table' AND name='tutorial' ''')
-    if c.fetchone()[0] == 1:
-        {print("Table was built.")}
+def test_save_data():  # modern sprint2 version of save data
+    # this is fake data, but I'm testing the save_to_db function so fake data is fine
+    fake_row = {'id': 'F$RT%YH&', 'type': 'Full Time', 'url': 'http://wwww.fakedata.com', 'created_at': '02-12-2020',
+                'company': "Don't Work Here Comp", 'company_url': None, 'location': "giant urban metro",
+                'title': 'Junior software peon', 'description': "blah blah, devops, scrum, hot tech",
+                'how_to_apply': "http://runaway.com", 'company_logo': None}
+    fake_table = 'test_table'
+    connection, cursor = CapstonePrep.open_db('testonly.sqlite')
+    CapstonePrep.create_table(cursor, CapstonePrep.make_column_description_from_json_dict(fake_row), fake_table)
+    # might have to blow away db on later runs - first run is fine
+    CapstonePrep.save_to_db([fake_row], cursor, fake_table)
+    test_query = F"SELECT type from {fake_table} WHERE (id = 'F$RT%YH&')"
+    result_cursor = cursor.execute(test_query)
+    results = result_cursor.rowcount
+    success = len(result_cursor.fetchall()) >=1
+    CapstonePrep.close_db(connection)
+    assert success
 
-    c.close()
-    conn.close()
 
 
-def test_good_insert():
-    # good insert here
-    demo_data = {'company': "testName", 'id': "1", 'type': "full", 'url': "www.nope.com",
-                 'created_at': "2020-02-02", 'company_url': "sa.com", 'location': "US",
-                 'title': "worker", 'description': "describe", 'how_to_apply': "hired"}
-
-    conn = sqlite3.connect('test.sqlite')
-    c = conn.cursor()
-
-    c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
-    company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
-
-    c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
-    description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-          (demo_data["company"], demo_data["id"], demo_data["type"], demo_data["url"], demo_data["created_at"],
-           demo_data["company_url"], demo_data["location"], demo_data["title"], demo_data["description"],
-           demo_data["how_to_apply"],))
-
-    """
-    entry_found = False
-    if c.fetchone()[0] == 1:
-        entry_found = False
-    """
-
-    conn.commit()
-    c.close()
-    conn.close()
-    # assert entry_found
-
-""" NOT WORKING
-def test_bad_insert():
-    # bad insert here
-    demo_data = {'company': "testName", 'id': 1, 'type': "full", 'url': "www.nope.com",
-                 'created_at': 20200202, 'company_url': "sa.com", 'location': "US",
-                 'title': "worker", 'description': "describe", 'how_to_apply': "hired"}
-
-    conn = sqlite3.connect('test.sqlite')
-    c = conn.cursor()
-
-    c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
-    company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
-
-    c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
-    description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-          (demo_data["company"], demo_data["id"], demo_data["type"], demo_data["url"], demo_data["created_at"],
-           demo_data["company_url"], demo_data["how_to_apply"], demo_data["location"], demo_data["title"],
-           demo_data["description"],))
-    conn.commit()
-    c.close()
-    conn.close()
-"""
+# old version from sprint 1
+# def test_save_data():
+#     # second required test
+#     demo_data = {'id': 1234, 'type': "Testable"}
+#     list_data = []
+#     list_data.append(demo_data)
+#     file_name = "testfile.txt"
+#     CapstonePrep.save_data(list_data, file_name)
+#     testfile = open(file_name, 'r')
+#     saved_data = testfile.readlines()
+#     #the save puts a newline at the end
+#     assert f"{str(demo_data)}\n" in saved_data

@@ -1,7 +1,8 @@
 import requests
 import time
-from typing import Dict, List
+from typing import Dict, List, Tuple, Any
 import sqlite3
+
 
 """
 Shane Driskell
@@ -12,16 +13,18 @@ Prof. Santore
 
 
 def get_github_jobs_data() -> List[Dict]:
-    """retrieve github jobs data in form of a list of dictionaries
-    after json processing"""
+    """retrieve github jobs data in form of a list of dictionaries after json processing"""
     all_data = []
     page = 1
     more_data = True
     while more_data:
         url = f"https://jobs.github.com/positions.json?page={page}"
         raw_data = requests.get(url)
-        if "GitHubber!" in raw_data:  # sometimes if I ask for pages too quickly I get an error; only happens in testing
+        if "GitHubber!" in raw_data.text:
+            # sometimes if I ask for pages too quickly I get an error; only happens in testing
             continue  # trying continue, but might want break
+        if not raw_data.ok:  # if we didn't get a 200 response code, don't try to decode with .json
+            continue
         partial_jobs_list = raw_data.json()
         all_data.extend(partial_jobs_list)
         if len(partial_jobs_list) < 50:
@@ -31,57 +34,66 @@ def get_github_jobs_data() -> List[Dict]:
     return all_data
 
 
-# Pushes List[Dict] to .txt
 def save_data(data, filename='data.txt'):
     with open(filename, 'a', encoding='utf-8') as file:
         for item in data:
             print(item, file=file)
 
 
-# Set the columns for database
-def create_db(data, conn, c):
-    c.execute('''CREATE TABLE IF NOT EXISTS tutorial(company TEXT, id TEXT, type TEXT, url TEXT, created_at TEXT,
-    company_url TEXT, location TEXT, title TEXT, description TEXT, how_to_apply TEXT);''')
+def hard_code_create_table(cursor: sqlite3.Cursor):
+    create_statement = f"""CREATE TABLE IF NOT EXISTS hardcode_github_jobs(
+    id TEXT PRIMARY KEY,
+    type TEXT,
+    url TEXT,
+    created_at TEXT,
+    company TEXT NOT NULL,
+    company_url TEXT,
+    location TEXT,
+    title TEXT NOT NULL,
+    description TEXT,
+    how_to_apply TEXT,
+    company_logo TEXT
+    );
+        """
+    cursor.execute(create_statement)
 
 
-# Add rows to database populated with each individual dictionary
-def populate_db(data, conn, c):
-    for jobs in data:
-        c.execute('''INSERT INTO tutorial(company, id, type, url, created_at, company_url, location, title,
-        description, how_to_apply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (jobs["company"], jobs["id"], jobs["type"], jobs["url"], jobs["created_at"], jobs["company_url"],
-                   jobs["location"], jobs["title"], jobs["description"], jobs["how_to_apply"],))
-    # Commit and close so rows are saved
-    conn.commit()
+def hard_code_save_to_db(cursor: sqlite3.Cursor, all_github_jobs: List[Dict[str, Any]]):
+    """in the insert statement below we need one '?' for each column, then we will use a second param with each of the
+    values when we execute it. SQLITE3 will do the data sanitization to avoid little bobby tables style problems"""
+    insert_statement = f"""INSERT INTO hardcode_github_jobs(
+        id, type, url, created_at, company, company_url, location, title, description, how_to_apply, company_logo)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?)"""
+    for job_info in all_github_jobs:
+        # first turn all the values from the jobs dict into a tuple
+        data_to_enter = tuple(job_info.values())
+        cursor.execute(insert_statement, data_to_enter)
 
 
-# Build list[dict] and .txt file
-def build_list():
-    data = get_github_jobs_data()
-    save_data(data)
-    return data
+def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
+    db_connection = sqlite3.connect(filename)  # connect to existing DB or create new one
+    cursor = db_connection.cursor()  # get ready to read/write data
+    return db_connection, cursor
 
 
-# BuiLd database and table
-def build_database(data):
-    # Build connection and cursor for database
-    conn = sqlite3.connect('test.sqlite')
-    c = conn.cursor()
-    # Create and populate database
-    create_db(data, conn, c)
-    populate_db(data, conn, c)
-    # Close connection and cursor
-    c.close()
-    conn.close()
+def close_db(connection: sqlite3.Connection):
+    connection.commit()  # make sure any changes get saved
+    connection.close()
 
 
 def main():
-    data = build_list()
-    build_database(data)
+    jobs_table_name = 'github_jobs_table'  # might be better as a constant in global space
+    db_name = 'jobdemo.sqlite'
+    connection, cursor = open_db(db_name)
+    data = get_github_jobs_data()
+    hard_code_create_table(cursor)
+    hard_code_save_to_db(cursor, data)
+    close_db(connection)
 
 
 if __name__ == '__main__':
     main()
+
 
 """
 References:
@@ -92,5 +104,8 @@ https://stackoverflow.com/questions/12599033/python-write-to-file-from-dictionar
 https://community.jamasoftware.com/blogs/john-lastname/2017/09/29/managing-multiple-pages-of-results-in-the-jama-rest-api
 https://webhost.bridgew.edu/jsantore/Spring2020/Capstone/3ContinuousIntegration.pdf
 http://webhost.bridgew.edu/jsantore/Spring2020/Capstone/4DataHandling.pdf
+https://www.sqlitetutorial.net/sqlite-python/insert/
+https://semaphoreci.com/community/tutorials/testing-python-applications-with-pytest
+https://www.pythonforbeginners.com/feedparser/using-feedparser-in-python
 https://www.sqlitetutorial.net/sqlite-python/insert/
 """
