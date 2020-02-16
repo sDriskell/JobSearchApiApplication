@@ -2,6 +2,7 @@ import requests
 import time
 from typing import Dict, List, Tuple, Any
 import sqlite3
+import feedparser
 
 
 """
@@ -58,6 +59,24 @@ def hard_code_create_table(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
+def hard_code_create_feed(cursor: sqlite3.Cursor):
+    create_statement = f"""CREATE TABLE IF NOT EXISTS hardcode_stackoverflow_jobs(
+    id TEXT PRIMARY KEY,
+    type TEXT,
+    url TEXT,
+    created_at TEXT,
+    company TEXT NOT NULL,
+    company_url TEXT,
+    location TEXT,
+    title TEXT NOT NULL,
+    description TEXT,
+    how_to_apply TEXT,
+    company_logo TEXT
+    );
+        """
+    cursor.execute(create_statement)
+
+
 def hard_code_save_to_db(cursor: sqlite3.Cursor, all_github_jobs: List[Dict[str, Any]]):
     """in the insert statement below we need one '?' for each column, then we will use a second param with each of the
     values when we execute it. SQLITE3 will do the data sanitization to avoid little bobby tables style problems"""
@@ -68,6 +87,24 @@ def hard_code_save_to_db(cursor: sqlite3.Cursor, all_github_jobs: List[Dict[str,
         # first turn all the values from the jobs dict into a tuple
         data_to_enter = tuple(job_info.values())
         cursor.execute(insert_statement, data_to_enter)
+
+
+# Ingest stackoverflow jobs feed with parser
+def feed_parser_to_db(cursor: sqlite3.Cursor):
+    url = f"https://stackoverflow.com/jobs/feed"
+    feed = feedparser.parse(url)
+    data_feed_parser = []
+    raw_feed = requests.get(url)
+    data_feed_parser.extend(raw_feed)
+    # Format date entries to be uniform
+    for jobs in feed.entries:
+        date = "(%d/%02d/%02d)" % (jobs.published_parsed.tm_year,
+                                   jobs.published_parsed.tm_mon,
+                                   jobs.published_parsed.tm_mday)
+        cursor.execute('''INSERT INTO hardcode_stackoverflow_jobs(id, type, url, created_at, company, company_url, location,
+        title, description, how_to_apply, company_logo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                       (jobs.guid, None, jobs.link, date, jobs.guid, jobs.link, None, jobs.title, jobs.description,
+                        None, None,))
 
 
 def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
@@ -87,7 +124,9 @@ def main():
     connection, cursor = open_db(db_name)
     data = get_github_jobs_data()
     hard_code_create_table(cursor)
+    hard_code_create_feed(cursor)
     hard_code_save_to_db(cursor, data)
+    feed_parser_to_db(cursor)
     close_db(connection)
 
 
