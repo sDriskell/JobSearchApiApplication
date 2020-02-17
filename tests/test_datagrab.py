@@ -56,3 +56,24 @@ def test_save_data():  # modern sprint2 version of save data
     success = len(result_cursor.fetchall()) >= 1
     CapstonePrep.close_db(connection)
     assert success
+
+
+def test_feed_table_exists():
+    connection, cursor = CapstonePrep.open_db("feedtest.sqlite")
+    CapstonePrep.hard_code_create_feed(cursor)
+    CapstonePrep.feed_parser_to_db(cursor)
+    result_cursor = cursor.execute(f"SELECT name from sqlite_master where (name = 'hardcode_stackoverflow_jobs')")
+    success = len(result_cursor.fetchall()) >= 1
+    assert success
+
+
+def test_save_feed_data():
+    connection, cursor = CapstonePrep.open_db("feedtest2.sqlite")
+    CapstonePrep.hard_code_create_feed(cursor)
+    CapstonePrep.feed_parser_to_db(cursor)
+    test_feed = f"SELECT type from {'hardcode_stackoverflow_jobs'} WHERE (id = 274402)"
+    result_cursor = cursor.execute(test_feed)
+    results = result_cursor.rowcount
+    success = len(result_cursor.fetchall()) >= 1
+    CapstonePrep.close_db(connection)
+    assert success

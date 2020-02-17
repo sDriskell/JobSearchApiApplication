@@ -59,16 +59,17 @@ def hard_code_create_table(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
+"""Hardcoded so we're repeating ourselves (groan) with using a table create for feeds"""
 def hard_code_create_feed(cursor: sqlite3.Cursor):
     create_statement = f"""CREATE TABLE IF NOT EXISTS hardcode_stackoverflow_jobs(
     id TEXT PRIMARY KEY,
     type TEXT,
     url TEXT,
     created_at TEXT,
-    company TEXT NOT NULL,
+    company TEXT,
     company_url TEXT,
     location TEXT,
-    title TEXT NOT NULL,
+    title TEXT,
     description TEXT,
     how_to_apply TEXT,
     company_logo TEXT
@@ -123,10 +124,13 @@ def main():
     db_name = 'jobdemo.sqlite'
     connection, cursor = open_db(db_name)
     data = get_github_jobs_data()
+
     hard_code_create_table(cursor)
     hard_code_create_feed(cursor)
+
     hard_code_save_to_db(cursor, data)
     feed_parser_to_db(cursor)
+
     close_db(connection)
 
 
