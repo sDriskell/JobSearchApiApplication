@@ -1,9 +1,14 @@
 import requests
 import time
-from typing import Dict, List, Tuple, Any
 import sqlite3
 import feedparser
+import pandas as pd
+import json
+import pathlib
+import folium
 
+from geopy.geocoders import Nominatim
+from typing import Dict, List, Tuple, Any
 
 """
 Shane Driskell
@@ -42,7 +47,7 @@ def save_data(data, filename='data.txt'):
 
 
 def hard_code_create_table(cursor: sqlite3.Cursor):
-    create_statement = f"""CREATE TABLE IF NOT EXISTS hardcode_github_jobs(
+    create_statement = f"""CREATE TABLE IF NOT EXISTS all_jobs(
     id TEXT PRIMARY KEY,
     type TEXT,
     url TEXT,
@@ -59,17 +64,16 @@ def hard_code_create_table(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
-"""Hardcoded so we're repeating ourselves (groan) with using a table create for feeds"""
-def hard_code_create_feed(cursor: sqlite3.Cursor):
-    create_statement = f"""CREATE TABLE IF NOT EXISTS hardcode_stackoverflow_jobs(
+def create_table_filter_jobs(cursor: sqlite3.Cursor):
+    create_statement = f"""CREATE TABLE IF NOT EXISTS filter_jobs(
     id TEXT PRIMARY KEY,
     type TEXT,
     url TEXT,
     created_at TEXT,
-    company TEXT,
+    company TEXT NOT NULL,
     company_url TEXT,
     location TEXT,
-    title TEXT,
+    title TEXT NOT NULL,
     description TEXT,
     how_to_apply TEXT,
     company_logo TEXT
@@ -78,10 +82,23 @@ def hard_code_create_feed(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
+def create_table_cache(cursor: sqlite3.Cursor):
+    create_statement = f"""CREATE TABLE IF NOT EXISTS filter_jobs(
+    location TEXT PRIMARY KEY,
+    latitude TEXT,
+    longitude TEXT
+    );
+        """
+    cursor.execute(create_statement)
+
+
 def hard_code_save_to_db(cursor: sqlite3.Cursor, all_github_jobs: List[Dict[str, Any]]):
     """in the insert statement below we need one '?' for each column, then we will use a second param with each of the
     values when we execute it. SQLITE3 will do the data sanitization to avoid little bobby tables style problems"""
-    insert_statement = f"""INSERT INTO hardcode_github_jobs(
+
+    cursor.execute('''DELETE FROM all_jobs''')
+
+    insert_statement = f"""INSERT INTO all_jobs(
         id, type, url, created_at, company, company_url, location, title, description, how_to_apply, company_logo)
         VALUES(?,?,?,?,?,?,?,?,?,?,?)"""
     for job_info in all_github_jobs:
@@ -102,10 +119,31 @@ def feed_parser_to_db(cursor: sqlite3.Cursor):
         date = "(%d/%02d/%02d)" % (jobs.published_parsed.tm_year,
                                    jobs.published_parsed.tm_mon,
                                    jobs.published_parsed.tm_mday)
-        cursor.execute('''INSERT INTO hardcode_stackoverflow_jobs(id, type, url, created_at, company, company_url, location,
+        title = jobs.title
+        location = title[title.rfind("(")+1:title.rfind(")")]
+
+        cursor.execute('''INSERT INTO all_jobs(id, type, url, created_at, company, company_url, location,
         title, description, how_to_apply, company_logo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                       (jobs.guid, None, jobs.link, date, jobs.guid, jobs.link, None, jobs.title, jobs.description,
+                       (jobs.guid, None, jobs.link, date, jobs.guid, jobs.link, location, jobs.title, jobs.description,
                         None, None,))
+
+
+def read_location_column(cursor):
+    geolocator = Nominatim(user_agent="specify_your_app_here")
+    cursor.execute("""SELECT location from hardcode_github_jobs""")
+    records = cursor.fetchall()
+    for column in records:
+        try:
+            location = geolocator.geocode(column)
+            print(location.address)
+        except AttributeError:
+            print("remote")
+
+
+# takes cursor,column to filter on, and value to filter on
+def filter_jobs(cursor,column, value):
+    exec_statement = """INSERT INTO main.filter_jobs SELECT * FROM main.all_jobs WHERE location LIKE 'Boston, MA'"""
+    cursor.execute(exec_statement)
 
 
 def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
@@ -123,13 +161,21 @@ def main():
     jobs_table_name = 'github_jobs_table'  # might be better as a constant in global space
     db_name = 'jobdemo.sqlite'
     connection, cursor = open_db(db_name)
+
+    print("getting data...")
     data = get_github_jobs_data()
-
     hard_code_create_table(cursor)
-    hard_code_create_feed(cursor)
-
     hard_code_save_to_db(cursor, data)
     feed_parser_to_db(cursor)
+    # read_location_column(cursor)
+
+    print("filtering...")
+    create_table_filter_jobs(cursor)
+    filter_jobs(cursor, "location", "Boston")
+
+    print("geocode...")
+    create_table_cache(cursor)
+
 
     close_db(connection)
 
