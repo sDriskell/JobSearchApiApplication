@@ -3,70 +3,55 @@
 
 # Working Functions:
 
-- Updated sprint two test methods to function with updated CapstonePrep.py methods
-- Implemented feedparser features into project
-- Developed methods for creating feedparser table and adding entries to it
-- Successfully stopped my kitten from butt typing in malicious code into my program.
-- Create test methods for creating an feedparser table and populating a feedparser entry in the table
+- Created Map
+- Created_table_cache table
 
 
 # Not Working: 
-- N/A
+Unable to get my filter jobs table to function.  My location is set in a Tuple format and I'm unable to parse out the town. ''.join() does not work and cannot couple the city and country into a string.  I get one of two attribute erros; either tuple object has no attribute location or list object has no attribute (when I use ''.join().  This leads to me being unable to create an overlay of job data and proper test methods.
+
+Where I'm failing is I don't know what I want to do.  It's not a "you don't know what you don't know" but more of picturing/imagining what you're looking to do.
 
 
 # New Code:
-        def hard_code_create_feed(cursor: sqlite3.Cursor):
-            create_statement = f"""CREATE TABLE IF NOT EXISTS hardcode_stackoverflow_jobs(
-            id TEXT PRIMARY KEY,
-            type TEXT,
-            url TEXT,
-            created_at TEXT,
-            company TEXT,
-            company_url TEXT,
-            location TEXT,
-            title TEXT,
-            description TEXT,
-            how_to_apply TEXT,
-            company_logo TEXT
-            );
-                """
-            cursor.execute(create_statement)
-        # Ingest stackoverflow jobs feed with parser
-        
-        def feed_parser_to_db(cursor: sqlite3.Cursor):
-            url = f"https://stackoverflow.com/jobs/feed"
-            feed = feedparser.parse(url)
-            data_feed_parser = []
-            raw_feed = requests.get(url)
-            data_feed_parser.extend(raw_feed)
-            # Format date entries to be uniform
-            for jobs in feed.entries:
-                date = "(%d/%02d/%02d)" % (jobs.published_parsed.tm_year,
-                                           jobs.published_parsed.tm_mon,
-                                           jobs.published_parsed.tm_mday)
-                cursor.execute('''INSERT INTO hardcode_stackoverflow_jobs(id, type, url, created_at, company, company_url, location,
-                title, description, how_to_apply, company_logo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                               (jobs.guid, None, jobs.link, date, jobs.guid, jobs.link, None, jobs.title, jobs.description,
-                                None, None,))
 
+        def create_table_cache(cursor: sqlite3.Cursor):
+                create_statement = f"""CREATE TABLE IF NOT EXISTS filter_jobs(
+                location TEXT PRIMARY KEY,
+                latitude TEXT,
+                longitude TEXT
+                );"""
+                cursor.execute(create_statement)
+
+
+        # Unable to convert tuple location into a name and lat/long
+        # takes cursor,column to filter on, and value to filter on
+        def filter_jobs(cursor):
+                geolocator = Nominatim(user_agent="specify_your_app_here")
+                cursor.execute('''SELECT location from all_jobs''')
+                records = cursor.fetchall()
+                for row in records:
+                        location_string = records.location[records.rfind("'(")+1:records.rfind(",")]
+                        time.sleep(0.5)
+                        try:
+                                place = geolocator.geocode(location_string)
+                                location_lat = location_string.latitude
+                                location_long = location_string.longitude
+                                cursor.execute('''INSERT INTO filter_jobs(location, latitude, longitude) VALUES (?, ?, ?)''',
+                                        (location_string, location_lat, location_long,))
+                        except AttributeError:
+                                print(row)  # AttributeError: 'tuple' object has no attribute 'location'
+
+
+        # Plot job locations on googleMap
+        def create_map(cursor):
+                latitudes = []
+                longitudes = []
+                gmap = gmplot.GoogleMapPlotter(35, -102, 5)
+                gmap.scatter(latitudes, longitudes, 'red', size=10)
+                gmap.draw("jobMap.html")
+                
+                
 # New Test Code:
   
-        def test_feed_table_exists():
-            connection, cursor = CapstonePrep.open_db("feedtest.sqlite")
-            CapstonePrep.hard_code_create_feed(cursor)
-            CapstonePrep.feed_parser_to_db(cursor)
-            result_cursor = cursor.execute(f"SELECT name from sqlite_master where (name = 'hardcode_stackoverflow_jobs')")
-            success = len(result_cursor.fetchall()) >= 1
-            assert success
-
-
-        def test_save_feed_data():
-            connection, cursor = CapstonePrep.open_db("feedtest2.sqlite")
-            CapstonePrep.hard_code_create_feed(cursor)
-            CapstonePrep.feed_parser_to_db(cursor)
-            test_feed = f"SELECT type from {'hardcode_stackoverflow_jobs'} WHERE (id = 274402)"
-            result_cursor = cursor.execute(test_feed)
-            results = result_cursor.rowcount
-            success = len(result_cursor.fetchall()) >= 1
-            CapstonePrep.close_db(connection)
-            assert success
+        N/A
