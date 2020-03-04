@@ -151,6 +151,7 @@ def filter_jobs(cursor):
             print(row)  # AttributeError: 'tuple' object has no attribute 'location'
 """
 
+
 # Plot job locations on googleMap
 def create_map(cursor):
     latitudes = []
@@ -184,7 +185,6 @@ def main():
 
     print("filtering...")
     create_table_filter_jobs(cursor)
-    filter_jobs(cursor)
 
     print("geocode...")
     create_table_cache(cursor)
