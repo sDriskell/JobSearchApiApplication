@@ -129,7 +129,7 @@ def feed_parser_to_db(cursor: sqlite3.Cursor):
                        (jobs.guid, None, jobs.link, date, jobs.guid, jobs.link, location, jobs.title, jobs.description,
                         None, None,))
 
-"""
+
 # Unable to convert tuple location into a name and lat/long
 # takes cursor,column to filter on, and value to filter on
 def filter_jobs(cursor):
@@ -137,19 +137,16 @@ def filter_jobs(cursor):
     cursor.execute('''SELECT location from all_jobs''')
     records = cursor.fetchall()
     for row in records:
-        location_string = ''.join(row)
-        location = location_string[location_string.rfind("'")+1:location_string("'")] 
-        # line 140: TypeError: 'str' object is not callable
+        location_string = records.location[records.rfind("'(")+1:records.rfind(",")]
         time.sleep(0.5)
         try:
-            place = geolocator.geocode(location)
-            location_lat = location.latitude
-            location_long = location.longitude
+            place = geolocator.geocode(location_string)
+            location_lat = location_string.latitude
+            location_long = location_string.longitude
             cursor.execute('''INSERT INTO filter_jobs(location, latitude, longitude) VALUES (?, ?, ?)''',
-                           (location, location_lat, location_long,))
+                           (location_string, location_lat, location_long,))
         except AttributeError:
             print(row)  # AttributeError: 'tuple' object has no attribute 'location'
-"""
 
 
 # Plot job locations on googleMap
@@ -190,6 +187,7 @@ def main():
     create_table_cache(cursor)
 
     print("populating geocode...")
+    filter_jobs(cursor)
 
     print("creating map...")
     create_map(cursor)
