@@ -8,7 +8,7 @@
 
 
 # Not Working: 
-Unable to get my filter jobs table to function.  My location is set in a Tuple format and I'm unable to parse out the town. ''.join does not work and cannot couple the city and country into a string.  This leads to me being unable to create an overlay of job data and proper test methods.
+Unable to get my filter jobs table to function.  My location is set in a Tuple format and I'm unable to parse out the town. ''.join() does not work and cannot couple the city and country into a string.  I get one of two attribute erros; either tuple object has no attribute location or list object has no attribute (when I use ''.join().  This leads to me being unable to create an overlay of job data and proper test methods.
 
 
 # New Code:
