@@ -137,6 +137,7 @@ def filter_jobs(cursor):
     cursor.execute('''SELECT location from all_jobs''')
     records = cursor.fetchall()
     for row in records:
+        ''.join(row)
         location_string = records.location[records.rfind("'(")+1:records.rfind(",")]
         time.sleep(0.5)
         try:
@@ -187,7 +188,7 @@ def main():
     create_table_cache(cursor)
 
     print("populating geocode...")
-    filter_jobs(cursor)
+    # filter_jobs(cursor)
 
     print("creating map...")
     create_map(cursor)
