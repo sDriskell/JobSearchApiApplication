@@ -134,7 +134,7 @@ def feed_parser_to_db(cursor: sqlite3.Cursor):
 # takes cursor,column to filter on, and value to filter on
 def filter_jobs(cursor):
     geolocator = Nominatim(user_agent="specify_your_app_here")
-    cursor.execute("""SELECT location from all_jobs""")
+    cursor.execute('''SELECT location from all_jobs''')
     records = cursor.fetchall()
     for row in records:
         location_string = ''.join(row)
@@ -145,7 +145,7 @@ def filter_jobs(cursor):
             place = geolocator.geocode(location)
             location_lat = location.latitude
             location_long = location.longitude
-            cursor.execute("""INSERT INTO filter_jobs(location, latitude, longitude) VALUES (?, ?, ?)""",
+            cursor.execute('''INSERT INTO filter_jobs(location, latitude, longitude) VALUES (?, ?, ?)''',
                            (location, location_lat, location_long,))
         except AttributeError:
             print(row)  # AttributeError: 'tuple' object has no attribute 'location'
