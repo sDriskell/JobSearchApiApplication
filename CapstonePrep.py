@@ -5,7 +5,9 @@ import feedparser
 import pandas as pd
 import json
 import pathlib
-import folium
+import functools
+import operator
+import gmplot
 
 from geopy.geocoders import Nominatim
 from typing import Dict, List, Tuple, Any
@@ -127,23 +129,35 @@ def feed_parser_to_db(cursor: sqlite3.Cursor):
                        (jobs.guid, None, jobs.link, date, jobs.guid, jobs.link, location, jobs.title, jobs.description,
                         None, None,))
 
-
-def read_location_column(cursor):
-    geolocator = Nominatim(user_agent="specify_your_app_here")
-    cursor.execute("""SELECT location from hardcode_github_jobs""")
-    records = cursor.fetchall()
-    for column in records:
-        try:
-            location = geolocator.geocode(column)
-            print(location.address)
-        except AttributeError:
-            print("remote")
-
-
+"""
+# Unable to convert tuple location into a name and lat/long
 # takes cursor,column to filter on, and value to filter on
-def filter_jobs(cursor,column, value):
-    exec_statement = """INSERT INTO main.filter_jobs SELECT * FROM main.all_jobs WHERE location LIKE 'Boston, MA'"""
-    cursor.execute(exec_statement)
+def filter_jobs(cursor):
+    geolocator = Nominatim(user_agent="specify_your_app_here")
+    cursor.execute("""SELECT location from all_jobs""")
+    records = cursor.fetchall()
+    for row in records:
+        location_string = ''.join(row)
+        location = location_string[location_string.rfind("'")+1:location_string("'")] 
+        # line 140: TypeError: 'str' object is not callable
+        time.sleep(0.5)
+        try:
+            place = geolocator.geocode(location)
+            location_lat = location.latitude
+            location_long = location.longitude
+            cursor.execute("""INSERT INTO filter_jobs(location, latitude, longitude) VALUES (?, ?, ?)""",
+                           (location, location_lat, location_long,))
+        except AttributeError:
+            print(row)  # AttributeError: 'tuple' object has no attribute 'location'
+"""
+
+# Plot job locations on googleMap
+def create_map(cursor):
+    latitudes = []
+    longitudes = []
+    gmap = gmplot.GoogleMapPlotter(35, -102, 5)
+    gmap.scatter(latitudes, longitudes, 'red', size=10)
+    gmap.draw("jobMap.html")
 
 
 def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
@@ -167,15 +181,18 @@ def main():
     hard_code_create_table(cursor)
     hard_code_save_to_db(cursor, data)
     feed_parser_to_db(cursor)
-    # read_location_column(cursor)
 
     print("filtering...")
     create_table_filter_jobs(cursor)
-    filter_jobs(cursor, "location", "Boston")
+    filter_jobs(cursor)
 
     print("geocode...")
     create_table_cache(cursor)
 
+    print("populating geocode...")
+
+    print("creating map...")
+    create_map(cursor)
 
     close_db(connection)
 
