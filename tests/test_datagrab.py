@@ -1,6 +1,6 @@
 import pytest
 import CapstonePrep
-
+import plotly.express
 
 @pytest.fixture
 def get_data():

@@ -3,7 +3,7 @@ import time
 import sqlite3
 import feedparser
 import pandas as pd
-import plotly.express as px
+import plotly_express as px
 
 from geopy.geocoders import Nominatim
 from typing import Dict, List, Tuple, Any
