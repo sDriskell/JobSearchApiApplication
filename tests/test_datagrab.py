@@ -68,3 +68,13 @@ def test_save_feed_data():
     success = len(result_cursor.fetchall()) >= 1
     CapstonePrep.close_db(connection)
     assert success
+
+
+def test_geo_locate():
+    connection, cursor = CapstonePrep.open_db("geo_test.sqlite")
+    CapstonePrep.create_table_cache(cursor)
+    CapstonePrep.geo_locate(cursor, "Boston, MA")
+    table_size = cursor.rowcount
+    success = table_size >= 1
+    CapstonePrep.close_db(connection)
+    assert success

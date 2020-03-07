@@ -6,7 +6,7 @@ import pandas as pd
 import json
 import pathlib
 import functools
-import operator
+import plotly.express as px
 import gmplot
 
 from geopy.geocoders import Nominatim
@@ -66,6 +66,7 @@ def hard_code_create_table(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
+# Filter table used to display search results
 def create_table_filter_jobs(cursor: sqlite3.Cursor):
     create_statement = f"""CREATE TABLE IF NOT EXISTS filter_jobs(
     id TEXT PRIMARY KEY,
@@ -84,9 +85,10 @@ def create_table_filter_jobs(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
+# For cities and their lat/longs
 def create_table_cache(cursor: sqlite3.Cursor):
-    create_statement = f"""CREATE TABLE IF NOT EXISTS filter_jobs(
-    location TEXT PRIMARY KEY,
+    create_statement = f"""CREATE TABLE IF NOT EXISTS location_cache(
+    city TEXT PRIMARY KEY,
     latitude TEXT,
     longitude TEXT
     );
@@ -130,33 +132,29 @@ def feed_parser_to_db(cursor: sqlite3.Cursor):
                         None, None,))
 
 
-# Unable to convert tuple location into a name and lat/long
-# takes cursor,column to filter on, and value to filter on
-def filter_jobs(cursor):
-    geolocator = Nominatim(user_agent="specify_your_app_here")
-    cursor.execute('''SELECT location from all_jobs''')
-    records = cursor.fetchall()
-    for row in records:
-        ''.join(row)
-        location_string = records.location[records.rfind("'(")+1:records.rfind(",")]
-        time.sleep(0.5)
-        try:
-            place = geolocator.geocode(location_string)
-            location_lat = location_string.latitude
-            location_long = location_string.longitude
-            cursor.execute('''INSERT INTO filter_jobs(location, latitude, longitude) VALUES (?, ?, ?)''',
-                           (location_string, location_lat, location_long,))
-        except AttributeError:
-            print(row)  # AttributeError: 'tuple' object has no attribute 'location'
+def geo_locate(cursor, location):
+    geo_code = Nominatim(user_agent="Project4")
+    cursor.execute('''SELECT * FROM location_cache WHERE city LIKE?''', (location,))
+    row = cursor.fetchone()
+
+    if row is None:  # Only add if does not exist
+        loc = geo_code.geocode(location)
+        latitude = loc.latitude
+        longitude = loc.longitude
+
+        if loc is not None:
+            print("adding to cache...")
+            cursor.execute('''INSERT INTO location_cache(city, latitude, longitude) VALUES(?,?,?)''',
+                           (location, latitude, longitude))
+        else:
+            cursor.execute('''INSERT INTO location_cache(city, latitude, longitude) VALUES(?,?,?)''',
+                           ("remote", "41.820150", "-70.587270"))  # temp plot point for remote locations
 
 
-# Plot job locations on googleMap
-def create_map(cursor):
-    latitudes = []
-    longitudes = []
-    gmap = gmplot.GoogleMapPlotter(35, -102, 5)
-    gmap.scatter(latitudes, longitudes, 'red', size=10)
-    gmap.draw("jobMap.html")
+def populate_filter_jobs_table(cursor, filtered_input):
+    cursor.execute('''DELETE FROM filter_jobs''')
+    execute = "INSERT INTO filter_jobs SELECT * FROM all_jobs " + filtered_input
+    cursor.execute(execute)
 
 
 def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
@@ -183,15 +181,28 @@ def main():
 
     print("filtering...")
     create_table_filter_jobs(cursor)
-
     print("geocode...")
     create_table_cache(cursor)
+    print("filter jobs...")
+    populate_filter_jobs_table(cursor, "WHERE location LIKE 'Boston, MA'")
 
-    print("populating geocode...")
-    # filter_jobs(cursor)
+    print("locating places...")
+    cursor.execute('''SELECT * FROM filter_jobs''')
+    items = cursor.fetchall()
+    for jobs in items:  # Parses out the location data to be created into lat/long
+        try:
+            geo_locate(cursor, jobs[6])
+        except AttributeError:
+            print("no location passed...")
 
-    print("creating map...")
-    create_map(cursor)
+    print("join statement...")
+    dataframe = pd.read_sql_query('''SELECT id, type, url, created_at, company, company_url, location, title, longitude,
+    latitude FROM filter_jobs INNER JOIN location_cache on location_cache.city = filter_jobs.location''', connection)
+
+    print("plot coords...")  # convert string into int for plotting
+    figure = px.scatter_geo(dataframe, lat="latitude", lon="longitude", hover_name='location')
+    figure.update_layout(mapbox_style="carto-darkmatter")
+    figure.show()
 
     close_db(connection)
 
