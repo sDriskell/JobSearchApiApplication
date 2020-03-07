@@ -4,54 +4,101 @@
 # Working Functions:
 
 - Created Map
-- Created_table_cache table
+- Created the filter table
+- Created the location cache table
+- Merge tables to plot on map
 
 
 # Not Working: 
-Unable to get my filter jobs table to function.  My location is set in a Tuple format and I'm unable to parse out the town. ''.join() does not work and cannot couple the city and country into a string.  I get one of two attribute erros; either tuple object has no attribute location or list object has no attribute (when I use ''.join().  This leads to me being unable to create an overlay of job data and proper test methods.
-
-Where I'm failing is I don't know what I want to do.  It's not a "you don't know what you don't know" but more of picturing/imagining what you're looking to do.
+- No UI for setting tags to filter against
+- Have to manually change location to filter for in code
+- No tags being displayed in GUI
 
 
 # New Code:
 
-        def create_table_cache(cursor: sqlite3.Cursor):
+        # Filter table used to display search results
+        def create_table_filter_jobs(cursor: sqlite3.Cursor):
                 create_statement = f"""CREATE TABLE IF NOT EXISTS filter_jobs(
-                location TEXT PRIMARY KEY,
-                latitude TEXT,
-                longitude TEXT
-                );"""
+                id TEXT PRIMARY KEY,
+                type TEXT,
+                url TEXT,
+                created_at TEXT,
+                company TEXT NOT NULL,
+                company_url TEXT,
+                location TEXT,
+                title TEXT NOT NULL,
+                description TEXT,
+                how_to_apply TEXT,
+                company_logo TEXT
+                );
+                """
                 cursor.execute(create_statement)
 
 
-        # Unable to convert tuple location into a name and lat/long
-        # takes cursor,column to filter on, and value to filter on
-        def filter_jobs(cursor):
-                geolocator = Nominatim(user_agent="specify_your_app_here")
-                cursor.execute('''SELECT location from all_jobs''')
-                records = cursor.fetchall()
-                for row in records:
-                        location_string = records.location[records.rfind("'(")+1:records.rfind(",")]
-                        time.sleep(0.5)
+        # For cities and their lat/longs
+        def create_table_cache(cursor: sqlite3.Cursor):
+                create_statement = f"""CREATE TABLE IF NOT EXISTS location_cache(
+                city TEXT PRIMARY KEY,
+                latitude TEXT,
+                longitude TEXT
+                );
+                """
+                cursor.execute(create_statement)
+    
+        def geo_locate(cursor, location):
+                geo_code = Nominatim(user_agent="Project4")
+                cursor.execute('''SELECT * FROM location_cache WHERE city LIKE?''', (location,))
+                row = cursor.fetchone()
+
+                if row is None:
+                        loc = geo_code.geocode(location)
+                        latitude = loc.latitude
+                        longitude = loc.longitude
+
+                if loc is not None:
+                        print("adding to cache...")
+                        cursor.execute('''INSERT INTO location_cache(city, latitude, longitude) VALUES(?,?,?)''',
+                                (location, latitude, longitude))
+                else:
+                        cursor.execute('''INSERT INTO location_cache(city, latitude, longitude) VALUES(?,?,?)''',
+                                ("remote", "41.820150", "-70.587270"))
+
+
+        def populate_filter_jobs_table(cursor, filtered_input):
+                cursor.execute('''DELETE FROM filter_jobs''')
+                execute = "INSERT INTO filter_jobs SELECT * FROM all_jobs " + filtered_input
+                cursor.execute(execute)
+
+
+        def main():
+                ...
+                print("locating places...")
+                cursor.execute('''SELECT * FROM filter_jobs''')
+                items = cursor.fetchall()
+                for jobs in items:
                         try:
-                                place = geolocator.geocode(location_string)
-                                location_lat = location_string.latitude
-                                location_long = location_string.longitude
-                                cursor.execute('''INSERT INTO filter_jobs(location, latitude, longitude) VALUES (?, ?, ?)''',
-                                        (location_string, location_lat, location_long,))
+                                geo_locate(cursor, jobs[6])
                         except AttributeError:
-                                print(row)  # AttributeError: 'tuple' object has no attribute 'location'
+                                print("no location passed...")
 
+                print("join statement...")
+                dataframe = pd.read_sql_query('''SELECT id, type, url, created_at, company, company_url, location, title, longitude,
+                latitude FROM filter_jobs INNER JOIN location_cache on location_cache.city = filter_jobs.location''', connection)
 
-        # Plot job locations on googleMap
-        def create_map(cursor):
-                latitudes = []
-                longitudes = []
-                gmap = gmplot.GoogleMapPlotter(35, -102, 5)
-                gmap.scatter(latitudes, longitudes, 'red', size=10)
-                gmap.draw("jobMap.html")
-                
+                print("plot coords...")
+                figure = px.scatter_geo(dataframe, lat="latitude", lon="longitude", hover_name='location')
+                figure.update_layout(mapbox_style="carto-darkmatter")
+                figure.show()
                 
 # New Test Code:
   
-        N/A
+        def test_geo_locate():
+                connection, cursor = CapstonePrep.open_db("geo_test.sqlite")
+                CapstonePrep.create_table_cache(cursor)
+                CapstonePrep.geo_locate(cursor, "Boston, MA")
+                table_size = cursor.rowcount
+                success = table_size >= 1
+                CapstonePrep.close_db(connection)
+                assert success
+
