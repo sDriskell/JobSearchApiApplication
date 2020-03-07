@@ -3,11 +3,7 @@ import time
 import sqlite3
 import feedparser
 import pandas as pd
-import json
-import pathlib
-import functools
 import plotly.express as px
-import gmplot
 
 from geopy.geocoders import Nominatim
 from typing import Dict, List, Tuple, Any
