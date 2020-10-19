@@ -39,12 +39,14 @@ def get_github_jobs_data() -> List[Dict]:
 
 
 def save_data(data, filename='data.txt'):
+    """Store data in data.txt file"""
     with open(filename, 'a', encoding='utf-8') as file:
         for item in data:
             print(item, file=file)
 
 
 def hard_code_create_table(cursor: sqlite3.Cursor):
+    """Build table for jobs to be stored"""
     create_statement = f"""CREATE TABLE IF NOT EXISTS all_jobs(
     id TEXT PRIMARY KEY,
     type TEXT,
@@ -62,8 +64,8 @@ def hard_code_create_table(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
-# Filter table used to display search results
 def create_table_filter_jobs(cursor: sqlite3.Cursor):
+    """Filter table used to display search results"""
     create_statement = f"""CREATE TABLE IF NOT EXISTS filter_jobs(
     id TEXT PRIMARY KEY,
     type TEXT,
@@ -81,8 +83,8 @@ def create_table_filter_jobs(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
-# For cities and their lat/longs
 def create_table_cache(cursor: sqlite3.Cursor):
+    """For cities and their lat/longs"""
     create_statement = f"""CREATE TABLE IF NOT EXISTS location_cache(
     city TEXT PRIMARY KEY,
     latitude TEXT,
@@ -107,8 +109,8 @@ def hard_code_save_to_db(cursor: sqlite3.Cursor, all_github_jobs: List[Dict[str,
         cursor.execute(insert_statement, data_to_enter)
 
 
-# Ingest stackoverflow jobs feed with parser
 def feed_parser_to_db(cursor: sqlite3.Cursor):
+    """Ingest stackoverflow jobs feed with parser"""
     url = f"https://stackoverflow.com/jobs/feed"
     feed = feedparser.parse(url)
     data_feed_parser = []
