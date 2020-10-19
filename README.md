@@ -13,6 +13,7 @@
 - No UI for setting tags to filter against
 - Have to manually change location to filter for in code
 - No tags being displayed in GUI
+- Package containing module 'plotly' is not listed in project requirements (I've used plotly_express and still get the same)
 
 
 # New Code:
