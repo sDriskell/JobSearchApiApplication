@@ -1,14 +1,16 @@
 # Shane Driskell
-# CAPSTONE COMP 490
-# 20 OCT 2020 @ 07:10AM
+# CAPSTONE COMP 490 Redo
+
+20 OCT 2020 @ 07:10AM
 
 # Create an application that queries two APIs (GitHub & StackOverflow) and generates an SQL database.  That database is then used to populate a created GUI that maps the location of jobs and presents pop-ups giving data on those jobs.
 
 # Working Functions:
 - Scrape jobs from GitHub
-- Save to text file
-- Create database, table
-- Save to table
+- Save results of scraping to text file
+- Create database, table for storing results
+- Save text file results to table
+- Created test functions to compliment each core function of application
 
 
 
