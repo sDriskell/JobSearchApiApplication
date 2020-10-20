@@ -1,6 +1,7 @@
 # Shane Driskell
-# CAPSTONE COMP 490
-# 20 OCT 2020 @ 07:10AM
+# CAPSTONE COMP 490 Redo
+
+20 OCT 2020 @ 07:10AM
 
 # Create an application that queries two APIs (GitHub & StackOverflow) and generates an SQL database.  That database is then used to populate a created GUI that maps the location of jobs and presents pop-ups giving data on those jobs.
 
