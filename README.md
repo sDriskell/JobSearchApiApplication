@@ -7,9 +7,10 @@
 
 # Working Functions:
 - Scrape jobs from GitHub
-- Save to text file
-- Create database, table
-- Save to table
+- Save results of scraping to text file
+- Create database, table for storing results
+- Save text file results to table
+- Created test functions to compliment each core function of application
 
 
 
