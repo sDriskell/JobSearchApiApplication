@@ -23,6 +23,7 @@ import pprint
 
 
 def save_data(data, filename='data.txt'):
+    """Store to a text file"""
     with open(filename, 'w', encoding="utf-8") as file:
         for item in data:
             print(item, file=file)
