@@ -12,11 +12,9 @@ The get_github_jobs_data and save_data functions were originally provided for th
 
 import requests
 import time
-from typing import Dict, List, Tuple, Any
 import sqlite3
-import json
-import os
 import feedparser
+from typing import Dict, List, Tuple, Any
 
 # For development purposes, delete when completed
 import pprint
@@ -61,16 +59,6 @@ def get_github_jobs_data() -> List[Dict]: # Provided by professor
     return all_data
 
 
-def get_stack_overflow_jobs() -> List[Dict]:  # LEFT OFF FIXING THIS
-    """Ingest Stack Overflow feed with a parser"""
-    url = f"https://stackoverflow.com/jobs/feed"
-    raw_feed = feedparser.parse(url)
-    data_feed_parser = []
-    feed = requests.get(url)
-    data_feed_parser.extend(feed)
-    return data_feed_parser
-
-
 def create_table_github(cursor: sqlite3.Cursor):
     """Build a table for job data to be stored"""
     create_statement = f"""CREATE TABLE IF NOT EXISTS g_jobs(
@@ -78,7 +66,7 @@ def create_table_github(cursor: sqlite3.Cursor):
     company TEXT NOT NULL,
     company_logo TEXT,
     company_url TEXT,
-    created_at TEXT,
+    created_at DATE,
     description TEXT,
     how_to_apply TEXT,
     location TEXT,
@@ -95,10 +83,9 @@ def create_table_stackoverflow(cursor: sqlite3.Cursor):
     author TEXT NOT NULL,
     link TEXT,
     location TEXT,
-    updated DATE,
+    date DATE,
     summary TEXT,
-    title TEXT,
-    tags TEXT
+    title TEXT NOT NULL
 );"""
     cursor.execute(create_statement)
 
@@ -107,8 +94,8 @@ def save_to_github_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):  
     """:keyword data is a list of dictionaries. Each dictionary is a JSON object with a bit of jobs data"""
     cursor.execute('''DELETE FROM g_jobs''')  # Scrub previous results to start over
 
-    insert_statement = """INSERT INTO g_jobs(id, company, company_logo, company_url, created_at, description,
-    how_to_apply, location, title, type, url) VALUES(?,?,?,?,?,?,?,?,?,?,?)"""
+    insert_statement = """INSERT INTO g_jobs(id, type, url, created_at, company, company_url, location, title, 
+    description, how_to_apply, company_logo) VALUES(?,?,?,?,?,?,?,?,?,?,?)"""
 
     # Turn all values from the jobs dict into a tuple
     for job_info in all_jobs:
@@ -116,9 +103,21 @@ def save_to_github_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):  
         cursor.execute(insert_statement, data_to_enter)
 
 
-def save_to_stackoverflow_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):
-    """Populate table with Stack Overflow data"""
-    pass
+def get_stack_overflow_jobs(cursor: sqlite3.Cursor):
+    """Ingest Stack Overflow feed directly into a separate table"""
+    cursor.execute('''DELETE FROM s_jobs''')
+
+    url = f"https://stackoverflow.com/jobs/feed"
+    feed = feedparser.parse(url)
+    # Format date entries to be uniform
+    for jobs in feed.entries:
+        date = "(%d/%02d/%02d)" % (jobs.published_parsed.tm_year, jobs.published_parsed.tm_mon,
+                                   jobs.published_parsed.tm_mday)
+        title = jobs.title
+        location = title[title.rfind("(")+1:title.rfind(")")]  # Clips location data nestled in title field
+
+        cursor.execute("""INSERT INTO s_jobs(id, author, link, location, date, summary, title) VALUES
+        (?,?,?,?,?,?,?)""", (jobs.id, jobs.author, jobs.link, location, date, jobs.summary, jobs.title))
 
 
 def main():
@@ -142,12 +141,8 @@ def main():
 
     print("-"*60)
 
-    print("Fetching Stack Overflow data...")
-    stack_overflow_data = get_stack_overflow_jobs()
-    print("Saving to data2.txt...")
-    save_data(stack_overflow_data, "data2.txt")
-    print("Writing to Stack Overflow table...")
-    save_to_stackoverflow_db(cursor, stack_overflow_data)
+    print("Fetching Stack Overflow data and saving to table...")
+    get_stack_overflow_jobs(cursor)
 
     print("Saving database...")
     close_db(connection)
