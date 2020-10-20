@@ -16,9 +16,29 @@ from typing import Dict, List, Tuple, Any
 import sqlite3
 import json
 import os
+import feedparser
 
 # For development purposes, delete when completed
 import pprint
+
+
+def save_data(data, filename='data.txt'):
+    with open(filename, 'w', encoding="utf-8") as file:
+        for item in data:
+            print(item, file=file)
+
+
+def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
+    """Create or manage a database file"""
+    db_connection = sqlite3.connect(filename)  # Create or connect to DB
+    cursor = db_connection.cursor()  # Read/write data
+    return db_connection, cursor
+
+
+def close_db(connection: sqlite3.Connection):
+    """Close DB once finished with"""
+    connection.commit()
+    connection.close()
 
 
 def get_github_jobs_data() -> List[Dict]: # Provided by professor
@@ -40,22 +60,19 @@ def get_github_jobs_data() -> List[Dict]: # Provided by professor
     return all_data
 
 
-def save_data(data, filename='data.txt'):
-    with open(filename, 'w', encoding="utf-8") as file:
-        for item in data:
-            print(item, file=file)
+def get_stack_overflow_jobs() -> List[Dict]:  # LEFT OFF FIXING THIS
+    """Ingest Stack Overflow feed with a parser"""
+    url = f"https://stackoverflow.com/jobs/feed"
+    raw_feed = feedparser.parse(url)
+    data_feed_parser = []
+    feed = requests.get(url)
+    data_feed_parser.extend(feed)
+    return data_feed_parser
 
 
-def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
-    """Create or manage a database file"""
-    db_connection = sqlite3.connect(filename)  # Create or connect to DB
-    cursor = db_connection.cursor()  # Read/write data
-    return db_connection, cursor
-
-
-def create_table(cursor: sqlite3.Cursor):
+def create_table_github(cursor: sqlite3.Cursor):
     """Build a table for job data to be stored"""
-    create_statement = f"""CREATE TABLE IF NOT EXISTS jobs(
+    create_statement = f"""CREATE TABLE IF NOT EXISTS g_jobs(
     id TEXT PRIMARY KEY,
     company TEXT NOT NULL,
     company_logo TEXT,
@@ -70,40 +87,68 @@ def create_table(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
-def save_to_db(cursor: sqlite3.Cursor, all_github_jobs: List[Dict[str, Any]]):  # Portions provided by professor
-    """:keyword data is a list of dictionaries. Each dictionary is a JSON object with a bit of jobs data"""
-    cursor.execute('''DELETE FROM jobs''')  # Scrub previous results to start over
+def create_table_stackoverflow(cursor: sqlite3.Cursor):
+    """Build a table for Stack Overflow job data to be stored"""
+    create_statement = f"""CREATE TABLE IF NOT EXISTS s_jobs(
+    id TEXT PRIMARY KEY,
+    author TEXT NOT NULL,
+    link TEXT,
+    location TEXT,
+    updated DATE,
+    summary TEXT,
+    title TEXT,
+    tags TEXT
+);"""
+    cursor.execute(create_statement)
 
-    insert_statement = """INSERT INTO jobs(id, company, company_logo, company_url, created_at, description,
+
+def save_to_github_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):  # Portions provided by professor
+    """:keyword data is a list of dictionaries. Each dictionary is a JSON object with a bit of jobs data"""
+    cursor.execute('''DELETE FROM g_jobs''')  # Scrub previous results to start over
+
+    insert_statement = """INSERT INTO g_jobs(id, company, company_logo, company_url, created_at, description,
     how_to_apply, location, title, type, url) VALUES(?,?,?,?,?,?,?,?,?,?,?)"""
 
     # Turn all values from the jobs dict into a tuple
-    for job_info in all_github_jobs:
+    for job_info in all_jobs:
         data_to_enter = tuple(job_info.values())
         cursor.execute(insert_statement, data_to_enter)
 
 
-def close_db(connection: sqlite3.Connection):
-    """Close DB once finished with"""
-    connection.commit()
-    connection.close()
+def save_to_stackoverflow_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):
+    """Populate table with Stack Overflow data"""
+    pass
 
 
 def main():
     jobs_table_name = 'github_jobs_table'
     db_name = 'jobdemo.sqlite'
-
-    print("Fetching GitHub data...")
-    data = get_github_jobs_data()
-    print("Saving to data.txt...")
-    save_data(data)
     print("Opening database...")
     connection, cursor = open_db(db_name)
-    print("Creating table...")
-    create_table(cursor)
-    print("Writing to table...")
-    save_to_db(cursor, data)
-    print("Closing database...")
+    print("Creating GitHub table...")
+    create_table_github(cursor)
+    print("Creating Stack Overflow table...")
+    create_table_stackoverflow(cursor)
+
+    print("-" * 60)
+
+    print("Fetching GitHub data...")
+    github_data = get_github_jobs_data()
+    print("Saving to data.txt...")
+    save_data(github_data)
+    print("Writing to GitHub table...")
+    save_to_github_db(cursor, github_data)
+
+    print("-"*60)
+
+    print("Fetching Stack Overflow data...")
+    stack_overflow_data = get_stack_overflow_jobs()
+    print("Saving to data2.txt...")
+    save_data(stack_overflow_data, "data2.txt")
+    print("Writing to Stack Overflow table...")
+    save_to_stackoverflow_db(cursor, stack_overflow_data)
+
+    print("Saving database...")
     close_db(connection)
 
 
