@@ -91,9 +91,8 @@ def create_table_stackoverflow(cursor: sqlite3.Cursor):
 
 
 def save_to_github_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):  # Portions provided by professor
-    """:keyword data is a list of dictionaries. Each dictionary is a JSON object with a bit of jobs data"""
+    """Injest GitHub data into a table"""
     cursor.execute('''DELETE FROM g_jobs''')  # Scrub previous results to start over
-
     insert_statement = """INSERT INTO g_jobs(id, type, url, created_at, company, company_url, location, title, 
     description, how_to_apply, company_logo) VALUES(?,?,?,?,?,?,?,?,?,?,?)"""
 
@@ -105,8 +104,7 @@ def save_to_github_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):  
 
 def get_stack_overflow_jobs(cursor: sqlite3.Cursor):
     """Ingest Stack Overflow feed directly into a separate table"""
-    cursor.execute('''DELETE FROM s_jobs''')
-
+    cursor.execute('''DELETE FROM s_jobs''')  # Scrub previous results to start over
     url = f"https://stackoverflow.com/jobs/feed"
     feed = feedparser.parse(url)
     # Format date entries to be uniform

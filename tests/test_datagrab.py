@@ -1,6 +1,6 @@
 import pytest
 import CapstoneProject
-
+import os
 
 @pytest.fixture
 def get_data():  # Provided by professor
@@ -36,3 +36,13 @@ def test_save_data():
     if text_sample is not None:
         assert True
 
+
+def test_stackoverflow_data():
+    """Test to ensure Stack Overflow table is created, written to, and then deleted"""
+    test_file_name = 'jobdemo.sqlite'
+    test_connection, test_cursor = CapstoneProject.open_db(test_file_name)
+    CapstoneProject.create_table_stackoverflow(test_cursor)
+    CapstoneProject.get_stack_overflow_jobs(test_cursor)
+
+    test_connection.close()
+    os.remove("jobdemo.sqlite")
