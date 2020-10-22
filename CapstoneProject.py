@@ -5,7 +5,7 @@ Purpose:  To build an application that takes job postings from two APIs (GitHub 
 and populates a SQL database.  That database is then used to create a GUI that plots the job
 postings on a map and presents a pop-up with the job data associated with it.
 
-The goal of this is to revisit a previous assignment, improve and finish the started assignment
+The goal of this is to revisit a previous assignment, improve, and finish the started assignment
 
 The get_github_jobs_data and save_data functions were originally provided for this assignment
 """
@@ -40,7 +40,7 @@ def close_db(connection: sqlite3.Connection):
     connection.close()
 
 
-def get_github_jobs_data() -> List[Dict]: # Provided by professor
+def get_github_jobs_data() -> List[Dict]:  # Provided by professor
     """Retrieve github jobs data in form of a list of dictionaries after json processing"""
     all_data = []
     page = 1
@@ -107,15 +107,19 @@ def get_stack_overflow_jobs(cursor: sqlite3.Cursor):
     cursor.execute('''DELETE FROM s_jobs''')  # Scrub previous results to start over
     url = f"https://stackoverflow.com/jobs/feed"
     feed = feedparser.parse(url)
-    # Format date entries to be uniform
+
     for jobs in feed.entries:
         date = "(%d/%02d/%02d)" % (jobs.published_parsed.tm_year, jobs.published_parsed.tm_mon,
-                                   jobs.published_parsed.tm_mday)
+                                   jobs.published_parsed.tm_mday)  # Format date entries to be uniform
         title = jobs.title
-        location = title[title.rfind("(")+1:title.rfind(")")]  # Clips location data nestled in title field
+        location = title[title.rfind("(")+1:title.rfind(")")]  # Clips location data nested in title field
 
         cursor.execute("""INSERT INTO s_jobs(id, author, link, location, date, summary, title) VALUES
         (?,?,?,?,?,?,?)""", (jobs.id, jobs.author, jobs.link, location, date, jobs.summary, jobs.title))
+
+
+def combine_tables(cursor: sqlite3):
+    cursor.execute("""SELECT s_jobs""")
 
 
 def main():
@@ -141,6 +145,12 @@ def main():
 
     print("Fetching Stack Overflow data and saving to table...")
     get_stack_overflow_jobs(cursor)
+
+    print("-"*60)
+
+    print("Merging GitHub and Stack Overflow tables...")
+
+    print("-"*60)
 
     print("Saving database...")
     close_db(connection)

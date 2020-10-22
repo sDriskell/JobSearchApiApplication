@@ -1,6 +1,7 @@
 import pytest
 import CapstoneProject
 import os
+import time
 
 @pytest.fixture
 def get_data():  # Provided by professor
@@ -35,6 +36,8 @@ def test_save_data():
     text_sample = test_file.readline()
     if text_sample is not None:
         assert True
+    else:
+        assert False
 
 
 def test_stackoverflow_data():
@@ -43,6 +46,13 @@ def test_stackoverflow_data():
     test_connection, test_cursor = CapstoneProject.open_db(test_file_name)
     CapstoneProject.create_table_stackoverflow(test_cursor)
     CapstoneProject.get_stack_overflow_jobs(test_cursor)
-
+    if test_cursor.fetchmany() is not None:
+        assert True
+    else:
+        assert False
     test_connection.close()
+
+
+def test_clean_up():
+    os.remove("testfile.txt")
     os.remove("jobdemo.sqlite")
