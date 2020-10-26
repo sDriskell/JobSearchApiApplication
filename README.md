@@ -13,10 +13,10 @@
 - Created test functions to compliment each core function of application
 - Scrape jobs from StackOverflow
 - Create and save StackOverflow jobs to table
+- Create merged table with GH and SO data
 
 
 # Next Up: 
-- Create merged table with GH and SO data
 - Create map gui
   + How to draw map graphic
   + How to manipulate map graphic
