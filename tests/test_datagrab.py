@@ -3,6 +3,7 @@ import CapstoneProject
 import os
 import time
 
+
 @pytest.fixture
 def get_data():  # Provided by professor
     """Capture data for each test so as not to rewrite code (DRY)"""
@@ -54,5 +55,6 @@ def test_stackoverflow_data():
 
 
 def test_clean_up():
+    """Removes all generated test files after testing is completed"""
     os.remove("testfile.txt")
     os.remove("jobdemo.sqlite")

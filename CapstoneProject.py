@@ -90,10 +90,23 @@ def create_table_stackoverflow(cursor: sqlite3.Cursor):
     cursor.execute(create_statement)
 
 
-def save_to_github_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):  # Portions provided by professor
+def create_combined_table(cursor: sqlite3.Cursor):
+    """Create new table that will contain content from previous searches"""
+    create_statement = f"""CREATE TABLE IF NOT EXISTS combined_jobs(
+    id TEXT PRIMARY KEY,
+    company TEXT,
+    link TEXT,
+    location TEXT,
+    date DATE,
+    content TEXT,
+    title TEXT);"""
+    cursor.execute(create_statement)
+
+
+def save_to_github_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):
     """Injest GitHub data into a table"""
-    cursor.execute('''DELETE FROM g_jobs''')  # Scrub previous results to start over
-    insert_statement = """INSERT INTO g_jobs(id, type, url, created_at, company, company_url, location, title, 
+    cursor.execute(f'''DELETE FROM g_jobs''')  # Scrub previous results to start over
+    insert_statement = f"""INSERT INTO g_jobs(id, type, url, created_at, company, company_url, location, title, 
     description, how_to_apply, company_logo) VALUES(?,?,?,?,?,?,?,?,?,?,?)"""
 
     # Turn all values from the jobs dict into a tuple
@@ -114,12 +127,34 @@ def get_stack_overflow_jobs(cursor: sqlite3.Cursor):
         title = jobs.title
         location = title[title.rfind("(")+1:title.rfind(")")]  # Clips location data nested in title field
 
-        cursor.execute("""INSERT INTO s_jobs(id, author, link, location, date, summary, title) VALUES
+        cursor.execute(f"""INSERT INTO s_jobs(id, author, link, location, date, summary, title) VALUES
         (?,?,?,?,?,?,?)""", (jobs.id, jobs.author, jobs.link, location, date, jobs.summary, jobs.title))
 
 
-def combine_tables(cursor: sqlite3):
-    cursor.execute("""SELECT s_jobs""")
+def combine_tables(cursor: sqlite3.Cursor):
+    """Merge both GitHub and StackOverflow tables into a combined table"""
+    cursor.execute('''DELETE FROM combined_jobs''')  # Scrub previous results to start over
+    # GitHub (g_jobs) merge statement
+    merge_g_statement = (f"""
+        INSERT INTO
+            combined_jobs(id, company, link, location, date, content, title)
+        SELECT
+            id, company, url, location, created_at, description, title
+        FROM
+            "g_jobs"
+        """)
+    cursor.execute(merge_g_statement)
+
+    # StackOverflow (s_jobs) merge statement
+    merge_s_statement = (f"""
+    INSERT INTO
+        combined_jobs(id, company, link, location, date, content, title)
+    SELECT
+        id, author, link, location, date, summary, title
+    FROM
+        "s_jobs"
+    """)
+    cursor.execute(merge_s_statement)
 
 
 def main():
@@ -149,6 +184,10 @@ def main():
     print("-"*60)
 
     print("Merging GitHub and Stack Overflow tables...")
+    print("Creating combined table...")
+    create_combined_table(cursor)
+    print("Inserting into combined table...")
+    combine_tables(cursor)
 
     print("-"*60)
 
