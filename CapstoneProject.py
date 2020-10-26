@@ -16,9 +16,6 @@ import sqlite3
 import feedparser
 from typing import Dict, List, Tuple, Any
 
-# For development purposes, delete when completed
-import pprint
-
 
 def save_data(data, filename='data.txt'):
     """Store to a text file"""
@@ -134,6 +131,7 @@ def get_stack_overflow_jobs(cursor: sqlite3.Cursor):
 def combine_tables(cursor: sqlite3.Cursor):
     """Merge both GitHub and StackOverflow tables into a combined table"""
     cursor.execute('''DELETE FROM combined_jobs''')  # Scrub previous results to start over
+
     # GitHub (g_jobs) merge statement
     merge_g_statement = (f"""
         INSERT INTO
@@ -147,13 +145,13 @@ def combine_tables(cursor: sqlite3.Cursor):
 
     # StackOverflow (s_jobs) merge statement
     merge_s_statement = (f"""
-    INSERT INTO
-        combined_jobs(id, company, link, location, date, content, title)
-    SELECT
-        id, author, link, location, date, summary, title
-    FROM
-        "s_jobs"
-    """)
+        INSERT INTO
+            combined_jobs(id, company, link, location, date, content, title)
+        SELECT
+            id, author, link, location, date, summary, title
+        FROM
+            "s_jobs"
+        """)
     cursor.execute(merge_s_statement)
 
 
@@ -197,4 +195,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
