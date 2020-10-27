@@ -15,6 +15,7 @@ import time
 import sqlite3
 import feedparser
 from typing import Dict, List, Tuple, Any
+from geopy.geocoders import Nominatim
 
 
 def save_data(data, filename='data.txt'):
@@ -101,7 +102,7 @@ def create_combined_table(cursor: sqlite3.Cursor):
 
 
 def save_to_github_db(cursor: sqlite3.Cursor, all_jobs: List[Dict[str, Any]]):
-    """Injest GitHub data into a table"""
+    """Ingest GitHub data into a table"""
     cursor.execute(f'''DELETE FROM g_jobs''')  # Scrub previous results to start over
     insert_statement = f"""INSERT INTO g_jobs(id, type, url, created_at, company, company_url, location, title, 
     description, how_to_apply, company_logo) VALUES(?,?,?,?,?,?,?,?,?,?,?)"""
@@ -155,6 +156,32 @@ def combine_tables(cursor: sqlite3.Cursor):
     cursor.execute(merge_s_statement)
 
 
+def create_table_cache(cursor: sqlite3.Cursor):
+    """Table with cities and their latitudes and longitudes"""
+    create_statement = f"""
+        CREATE TABLE IF NOT EXISTS
+            location_cache(
+            city TEXT PRIMARY KEY,
+            latitude TEXT,
+            longitude TEXT);"""
+    cursor.execute(create_statement)
+
+
+def geo_locate(cursor: sqlite3.Cursor):
+    """Generate location data for each city then feed to location_cache table"""
+    geo_code = Nominatim(user_agent="capstone_project")
+    cursor.execute("""SELECT location FROM combined_jobs""")
+    locations = cursor.fetchall()
+
+    for place in locations:
+        site = geo_code.geocode(place)  # <class 'geopy.location.Location'>
+        latitude = site.latitude
+        longitude = site.longitude
+
+        print(site, latitude, longitude)
+        # AttributeError: 'NoneType' object has no attribute 'latitude'
+
+
 def main():
     jobs_table_name = 'github_jobs_table'
     db_name = 'jobdemo.sqlite'
@@ -186,6 +213,13 @@ def main():
     create_combined_table(cursor)
     print("Inserting into combined table...")
     combine_tables(cursor)
+
+    print("-"*60)
+
+    print("Creating geo-location table...")
+    create_table_cache(cursor)
+    print("Generating location data...")
+    geo_locate(cursor)
 
     print("-"*60)
 
