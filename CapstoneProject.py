@@ -14,6 +14,9 @@ import requests
 import time
 import sqlite3
 import feedparser
+import pandas as pd
+import pprint
+import plotly_express as px
 from typing import Dict, List, Tuple, Any
 from geopy.geocoders import Nominatim
 
@@ -183,11 +186,25 @@ def geo_locate(cursor: sqlite3.Cursor):
                     cursor.execute(f"""INSERT INTO location_cache(city, latitude, longitude) VALUES
                     (?,?,?)""", (city, site.latitude, site.longitude))
                 except sqlite3.IntegrityError:
-                    print("Could not format.")
+                    pass
             except TypeError:
                 print("No city.")
     else:
         print("Table already built")
+
+
+def create_dataframe(cursor: sqlite3.Cursor, connection: sqlite3.Connection) -> pd.DataFrame:
+    """Create dataframe containing fields from combined_jobs and location_cache tables"""
+    dataframe = pd.read_sql_query(f"""
+        SELECT 
+            id, company, link, location, date,
+            content, title, latitude, longitude 
+        FROM 
+            combined_jobs 
+        INNER JOIN 
+            location_cache on location_cache.city = combined_jobs.location""",
+                                  connection)
+    return dataframe
 
 
 def main():
@@ -228,11 +245,15 @@ def main():
     create_table_cache(cursor)
     print("Generating location data...")
     geo_locate(cursor)
+    print("Creating the dataframe...")
+    dataframe = create_dataframe(cursor, connection)  # ONLY CREATING DF WITH TWO ENTRIES
+    print(dataframe)
 
     print("-"*60)
 
     print("Saving database...")
     close_db(connection)
+
 
 if __name__ == '__main__':
     main()
