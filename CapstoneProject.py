@@ -46,6 +46,7 @@ def get_github_jobs_data() -> List[Dict]:  # Provided by professor
     while more_data:
         url = f"https://jobs.github.com/positions.json?page={page}"
         raw_data = requests.get(url)
+        raw_data.raise_for_status()
         if "GitHubber!" in raw_data:  # Avoid error in testing
             continue  # Trying continue, but might want break
         partial_jobs_list = raw_data.json()
@@ -162,8 +163,8 @@ def create_table_cache(cursor: sqlite3.Cursor):
         CREATE TABLE IF NOT EXISTS
             location_cache(
             city TEXT PRIMARY KEY,
-            latitude TEXT,
-            longitude TEXT);"""
+            latitude FLOAT,
+            longitude FLOAT);"""
     cursor.execute(create_statement)
 
 
@@ -173,13 +174,20 @@ def geo_locate(cursor: sqlite3.Cursor):
     cursor.execute("""SELECT location FROM combined_jobs""")
     locations = cursor.fetchall()
 
-    for place in locations:
-        site = geo_code.geocode(place)  # <class 'geopy.location.Location'>
-        latitude = site.latitude
-        longitude = site.longitude
-
-        print(site, latitude, longitude)
-        # AttributeError: 'NoneType' object has no attribute 'latitude'
+    if len(locations) == 0:
+        for place in locations:
+            site = geo_code.geocode(place)  # <class 'geopy.location.Location'>
+            try:
+                try:
+                    city = str(site[0])
+                    cursor.execute(f"""INSERT INTO location_cache(city, latitude, longitude) VALUES
+                    (?,?,?)""", (city, site.latitude, site.longitude))
+                except sqlite3.IntegrityError:
+                    print("Could not format.")
+            except TypeError:
+                print("No city.")
+    else:
+        print("Table already built")
 
 
 def main():
@@ -225,7 +233,6 @@ def main():
 
     print("Saving database...")
     close_db(connection)
-
 
 if __name__ == '__main__':
     main()
