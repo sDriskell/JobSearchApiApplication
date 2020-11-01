@@ -14,11 +14,17 @@ import requests
 import time
 import sqlite3
 import feedparser
+
 import pandas as pd
-import pprint
 import plotly_express as px
+
 from typing import Dict, List, Tuple, Any
 from geopy.geocoders import Nominatim
+
+"""TEMP Libraries for development purposes"""
+import pprint
+import webbrowser
+from tempfile import NamedTemporaryFile
 
 
 def save_data(data, filename='data.txt'):
@@ -193,7 +199,7 @@ def geo_locate(cursor: sqlite3.Cursor):
         print("Table already built")
 
 
-def create_dataframe(cursor: sqlite3.Cursor, connection: sqlite3.Connection) -> pd.DataFrame:
+def create_dataframe(connection: sqlite3.Connection) -> pd.DataFrame:
     """Create dataframe containing fields from combined_jobs and location_cache tables"""
     dataframe = pd.read_sql_query(f"""
         SELECT 
@@ -246,10 +252,16 @@ def main():
     print("Generating location data...")
     geo_locate(cursor)
     print("Creating the dataframe...")
-    dataframe = create_dataframe(cursor, connection)  # ONLY CREATING DF WITH TWO ENTRIES
+    dataframe = create_dataframe(connection)
     print(dataframe)
 
     print("-"*60)
+
+    print("Plotting locations...")
+    figure = px.scatter_geo(dataframe, lat="latitude", lon="longitude", hover_name='title', text='id',
+                            hover_data=['company', 'location'])
+    figure.update_layout(mapbox_style="carto-darkmatter")
+    figure.show()
 
     print("Saving database...")
     close_db(connection)
