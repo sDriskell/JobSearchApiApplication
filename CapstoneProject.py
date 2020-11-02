@@ -183,7 +183,7 @@ def geo_locate(cursor: sqlite3.Cursor):
     cursor.execute("""SELECT location FROM combined_jobs""")
     locations = cursor.fetchall()
 
-    if len(locations) == 0:
+    if len(locations) == 0:  # Change to > to run query. set to == because time to run
         for place in locations:
             site = geo_code.geocode(place)  # <class 'geopy.location.Location'>
             try:
@@ -202,14 +202,13 @@ def geo_locate(cursor: sqlite3.Cursor):
 def create_dataframe(connection: sqlite3.Connection) -> pd.DataFrame:
     """Create dataframe containing fields from combined_jobs and location_cache tables"""
     dataframe = pd.read_sql_query(f"""
-        SELECT 
-            id, company, link, location, date,
-            content, title, latitude, longitude 
-        FROM 
-            combined_jobs 
-        INNER JOIN 
-            location_cache on location_cache.city = combined_jobs.location""",
-                                  connection)
+        SELECT
+            *
+        FROM
+            combined_jobs
+        LEFT OUTER JOIN
+            location_cache on (combined_jobs.location = location_cache.city)
+        """, connection)
     return dataframe
 
 
@@ -252,13 +251,13 @@ def main():
     print("Generating location data...")
     geo_locate(cursor)
     print("Creating the dataframe...")
-    dataframe = create_dataframe(connection)
-    print(dataframe)
+    loc_dataframe = create_dataframe(connection)
+    print(loc_dataframe)
 
     print("-"*60)
 
     print("Plotting locations...")
-    figure = px.scatter_geo(dataframe, lat="latitude", lon="longitude", hover_name='title', text='id',
+    figure = px.scatter_geo(loc_dataframe, lat="latitude", lon="longitude", hover_name='title', text='id',
                             hover_data=['company', 'location'])
     figure.update_layout(mapbox_style="carto-darkmatter")
     figure.show()
