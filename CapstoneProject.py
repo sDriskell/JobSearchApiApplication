@@ -257,10 +257,10 @@ def main():
 
     print("-"*60)
 
-    # print("Creating location cache table...")
-    # create_location_cache(cursor)
-    # print("Generating location data...")
-    # geo_locate(cursor)
+    print("Creating location cache table...")
+    create_location_cache(cursor)
+    print("Generating location data...")
+    geo_locate(cursor)
     print("Creating the dataframe...")
     loc_dataframe = create_dataframe(connection)
     print("Plotting locations...")
