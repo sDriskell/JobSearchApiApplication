@@ -14,7 +14,7 @@ import requests
 import time
 import sqlite3
 import feedparser
-
+import time
 import pandas as pd
 import plotly_express as px
 
@@ -107,7 +107,18 @@ def create_combined_table(cursor: sqlite3.Cursor):
     location TEXT,
     date DATE,
     content TEXT,
-    title TEXT);"""
+    title TEXT,
+    latitude TEXT,
+    longitude TEXT);"""
+    cursor.execute(create_statement)
+
+
+def create_location_cache(cursor:sqlite3.Cursor):
+    """Create a table with location name and coordinates"""
+    create_statement = f"""CREATE TABLE IF NOT EXISTS location_cache(
+    location TEXT PRIMARY KEY,
+    latitude FLOAT,
+    longitude FLOAT);"""
     cursor.execute(create_statement)
 
 
@@ -142,6 +153,7 @@ def get_stack_overflow_jobs(cursor: sqlite3.Cursor):
 def combine_tables(cursor: sqlite3.Cursor):
     """Merge both GitHub and StackOverflow tables into a combined table"""
     cursor.execute('''DELETE FROM combined_jobs''')  # Scrub previous results to start over
+    geo_code = Nominatim(user_agent="capstone_project")
 
     # GitHub (g_jobs) merge statement
     merge_g_statement = (f"""
@@ -166,50 +178,49 @@ def combine_tables(cursor: sqlite3.Cursor):
     cursor.execute(merge_s_statement)
 
 
-def create_table_cache(cursor: sqlite3.Cursor):
-    """Table with cities and their latitudes and longitudes"""
-    create_statement = f"""
-        CREATE TABLE IF NOT EXISTS
-            location_cache(
-            city TEXT PRIMARY KEY,
-            latitude FLOAT,
-            longitude FLOAT);"""
-    cursor.execute(create_statement)
-
-
 def geo_locate(cursor: sqlite3.Cursor):
     """Generate location data for each city then feed to location_cache table"""
+    cursor.execute('''DELETE FROM location_cache''')  # Scrub previous results to start over
+
     geo_code = Nominatim(user_agent="capstone_project")
     cursor.execute("""SELECT location FROM combined_jobs""")
-    locations = cursor.fetchall()
+    jobs = cursor.fetchall()  # Set to .fetchall once development is complete
 
-    if len(locations) == 0:  # Change to > to run query. set to == because time to run
-        for place in locations:
-            site = geo_code.geocode(place)  # <class 'geopy.location.Location'>
-            try:
-                try:
-                    city = str(site[0])
-                    cursor.execute(f"""INSERT INTO location_cache(city, latitude, longitude) VALUES
-                    (?,?,?)""", (city, site.latitude, site.longitude))
-                except sqlite3.IntegrityError:
-                    pass
-            except TypeError:
-                print("No city.")
-    else:
-        print("Table already built")
+    for location in jobs:
+        try:
+            full_loc = geo_code.geocode(location[0])
+            print(location[0])
+            cursor.execute(f"""INSERT INTO location_cache(location, latitude, longitude)
+            VALUES (?,?,?)""", (location[0], full_loc.latitude, full_loc.longitude))
+        except AttributeError:
+            print(AttributeError)
+        except sqlite3.IntegrityError:
+            print(sqlite3.IntegrityError)
 
 
 def create_dataframe(connection: sqlite3.Connection) -> pd.DataFrame:
     """Create dataframe containing fields from combined_jobs and location_cache tables"""
     dataframe = pd.read_sql_query(f"""
         SELECT
-            *
+            combined_jobs.id, combined_jobs.company, combined_jobs.link, combined_jobs.location,
+            combined_jobs.date, combined_jobs.content, combined_jobs.title, location_cache.location,
+            location_cache.latitude, location_cache.longitude
         FROM
             combined_jobs
         LEFT OUTER JOIN
-            location_cache on (combined_jobs.location = location_cache.city)
-        """, connection)
+            location_cache on (combined_jobs.location = location_cache.location)""",
+                                      connection)
+    print(dataframe)
     return dataframe
+
+
+def plot_map(loc_dataframe: pd.DataFrame):
+    """Produce map and plots with meta-data on each potential job"""
+    figure = px.scatter_geo(loc_dataframe, lat="latitude", lon="longitude",
+                            hover_name='title', text='id',
+                            hover_data=['company', 'location'])
+    figure.update_layout(mapbox_style="carto-darkmatter")
+    figure.show()
 
 
 def main():
@@ -246,21 +257,16 @@ def main():
 
     print("-"*60)
 
-    print("Creating geo-location table...")
-    create_table_cache(cursor)
-    print("Generating location data...")
-    geo_locate(cursor)
+    # print("Creating location cache table...")
+    # create_location_cache(cursor)
+    # print("Generating location data...")
+    # geo_locate(cursor)
     print("Creating the dataframe...")
     loc_dataframe = create_dataframe(connection)
-    print(loc_dataframe)
-
-    print("-"*60)
-
     print("Plotting locations...")
-    figure = px.scatter_geo(loc_dataframe, lat="latitude", lon="longitude", hover_name='title', text='id',
-                            hover_data=['company', 'location'])
-    figure.update_layout(mapbox_style="carto-darkmatter")
-    figure.show()
+    plot_map(loc_dataframe)
+
+    print("-" * 60)
 
     print("Saving database...")
     close_db(connection)
