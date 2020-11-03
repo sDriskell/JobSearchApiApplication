@@ -218,7 +218,7 @@ def plot_map(loc_dataframe: pd.DataFrame):
     """Produce map and plots with meta-data on each potential job"""
     figure = px.scatter_geo(loc_dataframe, lat="latitude", lon="longitude",
                             hover_name='title', text='id',
-                            hover_data=['company', 'location'])
+                            hover_data=('company', 'location'))
     figure.update_layout(mapbox_style="carto-darkmatter")
     figure.show()
 
