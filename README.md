@@ -14,6 +14,8 @@
 - Scrape jobs from StackOverflow
 - Create and save StackOverflow jobs to table
 - Create merged table with GH and SO data
+- Create a location table to plot cities for job postings to be plotted to a map
+- Use plotly to crudely depict locations of jobs
 
 
 # Next Up: 
