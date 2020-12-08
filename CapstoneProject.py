@@ -21,11 +21,6 @@ import plotly_express as px
 from typing import Dict, List, Tuple, Any
 from geopy.geocoders import Nominatim
 
-"""TEMP Libraries for development purposes"""
-import pprint
-import webbrowser
-from tempfile import NamedTemporaryFile
-
 
 def save_data(data, filename='data.txt'):
     """Store to a text file"""
