@@ -17,13 +17,3 @@
 - Create a location table to plot cities for job postings to be plotted to a map
 - Use plotly to crudely depict locations of jobs
 
-
-# Next Up: 
-- Create map gui
-  + How to draw map graphic
-  + How to manipulate map graphic
-- Plot to map gui
-  + How to plot by city location
-  + How to manipulate plotted points
-- Assess data through use of map gui
-  + How to present data in a frame or pop-up
