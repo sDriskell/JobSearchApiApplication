@@ -17,9 +17,12 @@ import feedparser
 import time
 import pandas as pd
 import plotly_express as px
-
+import pprint
+import webbrowser
+from tempfile import NamedTemporaryFile
 from typing import Dict, List, Tuple, Any
 from geopy.geocoders import Nominatim
+
 
 
 def save_data(data, filename='data.txt'):
